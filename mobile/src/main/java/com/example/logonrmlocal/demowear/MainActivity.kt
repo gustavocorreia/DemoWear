@@ -6,6 +6,8 @@ import android.support.v7.widget.LinearLayoutManager
 import com.example.models.Carro
 import com.google.android.gms.common.api.GoogleApiClient
 import com.google.android.gms.wearable.Node
+import com.google.android.gms.wearable.Wearable
+import com.google.gson.Gson
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity(),
@@ -16,17 +18,27 @@ class MainActivity : AppCompatActivity(),
     private var connectedNode: List<Node>? = null
 
     override fun onConnected(p0: Bundle?) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        Wearable.NodeApi.getConnectedNodes(client).setResultCallback {
+            connectedNode = it.nodes
+        }
     }
 
     override fun onConnectionSuspended(p0: Int) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        connectedNode = null
     }
 
 
 
     override fun carroClicked(carro: Carro) {
-
+        val gson = Gson()
+        connectedNode?.forEach{
+            Wearable.MessageApi.sendMessage(
+                    client,
+                    it.id,
+                    "/carro",
+                    gson.toJson(carro).toByteArray()
+            )
+        }
     }
 
     private var adapter: CarroListAdapter? = null
@@ -38,6 +50,12 @@ class MainActivity : AppCompatActivity(),
         adapter = CarroListAdapter(carros, this)
         lista.adapter = adapter
         lista.layoutManager = LinearLayoutManager(this)
+
+        client = GoogleApiClient.Builder(this)
+                .addConnectionCallbacks(this)
+                .addApi(Wearable.API)
+                .build()
+        client.connect()
     }
 }
 
